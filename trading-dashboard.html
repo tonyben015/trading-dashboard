@@ -379,24 +379,27 @@ function switchTab(id, btn) {
   document.getElementById('tab-'+id).classList.add('active');
 }
 
-// ─── RSS ──────────────────────────────────────────────────
+// ─── NEWS FINNHUB ─────────────────────────────────────────
+const FINNHUB_KEY = 'd8anif9r01qpujl2q2rgd8anif9r01qpujl2q2s0';
+
 async function fetchRSS() {
-  document.getElementById('rss-lbl').textContent='Mise à jour...';
+  document.getElementById('rss-lbl').textContent = 'Mise à jour...';
   try {
-    const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.forexlive.com%2Ffeed%2Fnews');
+    const res  = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_KEY}`);
     const data = await res.json();
-    const items = data.items || [];
-    document.getElementById('rss-feed').innerHTML = items.slice(0,20).map(item=>{
-      const ago = timeAgo(new Date(item.pubDate));
-      return `<a class="ri" href="${item.link}" target="_blank">
-        <div class="ri-meta"><span class="ri-src">ForexLive</span>${ago}</div>
-        <div class="ri-title">${item.title}</div>
+    document.getElementById('rss-feed').innerHTML = data.slice(0, 25).map(item => {
+      const ago  = timeAgo(new Date(item.datetime * 1000));
+      const src  = item.source || 'News';
+      return `<a class="ri" href="${item.url}" target="_blank">
+        <div class="ri-meta"><span class="ri-src">${src}</span>${ago}</div>
+        <div class="ri-title">${item.headline}</div>
       </a>`;
     }).join('');
-    const now=new Date();
-    document.getElementById('rss-lbl').textContent=`Mis à jour ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const now = new Date();
+    document.getElementById('rss-lbl').textContent = `Mis à jour ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
   } catch(e) {
-    document.getElementById('rss-lbl').textContent='Erreur réseau';
+    document.getElementById('rss-lbl').textContent = 'Erreur réseau';
+    document.getElementById('rss-feed').innerHTML = `<div class="rss-spin">✕ Impossible de charger les news.</div>`;
   }
 }
 
