@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trade·Desk</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0:#080b0f; --bg-1:#0d1117; --bg-2:#161b22; --bg-3:#21262d; --bg-4:#30363d;
+    --text-1:#e6edf3; --text-2:#8b949e; --text-3:#484f58;
+    --accent:#1f6feb; --accent-glow:rgba(31,111,235,0.15);
+    --green:#3fb950; --green-bg:rgba(63,185,80,0.1);
+    --red:#f85149; --red-bg:rgba(248,81,73,0.1);
+    --amber:#d29922; --amber-bg:rgba(210,153,34,0.1);
+    --border:rgba(255,255,255,0.06);
+    --font-mono:'JetBrains Mono',monospace;
+    --font-sans:'Inter',sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg-0); color:var(--text-1); font-family:var(--font-sans); height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+
+  /* TOPBAR — simplifié */
+  #topbar { height:38px; background:var(--bg-1); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 14px; gap:10px; flex-shrink:0; }
+  .logo { font-family:var(--font-mono); font-size:13px; font-weight:600; color:var(--accent); letter-spacing:0.05em; }
+  .sep { width:1px; height:16px; background:var(--border); flex-shrink:0; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 5px var(--green); flex-shrink:0; }
+  .badge { font-size:10px; font-family:var(--font-mono); padding:2px 7px; border-radius:4px; font-weight:500; }
+  .badge-pre    { background:var(--amber-bg); color:var(--amber); border:1px solid rgba(210,153,34,0.3); }
+  .badge-open   { background:var(--green-bg); color:var(--green); border:1px solid rgba(63,185,80,0.3); }
+  .badge-closed { background:var(--bg-3); color:var(--text-2); border:1px solid var(--border); }
+  #clock { font-family:var(--font-mono); font-size:12px; color:var(--text-1); font-weight:500; margin-left:auto; }
+
+  /* LAYOUT */
+  #main { display:flex; flex:1; overflow:hidden; }
+
+  /* LEFT */
+  #left { width:200px; flex-shrink:0; background:var(--bg-1); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; }
+  .ph { padding:6px 12px; font-size:9px; font-family:var(--font-mono); color:var(--text-3); letter-spacing:0.12em; text-transform:uppercase; border-bottom:1px solid var(--border); flex-shrink:0; }
+
+  #wl-widget { flex-shrink:0; }
+  #asset-btns { padding:5px 8px; display:flex; flex-wrap:wrap; gap:3px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .abtn { font-family:var(--font-mono); font-size:9px; padding:2px 6px; border-radius:3px; border:1px solid var(--border); background:transparent; color:var(--text-2); cursor:pointer; transition:all 0.12s; }
+  .abtn:hover { background:var(--bg-3); color:var(--text-1); }
+  .abtn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  /* VIX */
+  .vix-wrap { padding:8px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .vix-val  { font-family:var(--font-mono); font-size:22px; font-weight:600; line-height:1; margin-bottom:2px; }
+  .vix-lbl  { font-size:9px; color:var(--text-2); margin-bottom:6px; }
+  .vix-bar  { height:3px; background:var(--bg-3); border-radius:2px; margin-bottom:5px; overflow:hidden; }
+  .vix-fill { height:100%; border-radius:2px; }
+  .vix-msg  { font-size:10px; line-height:1.4; padding:5px 7px; border-radius:4px; font-family:var(--font-mono); }
+  .vg .vix-val{color:var(--green)} .vg .vix-fill{background:var(--green);width:28%} .vg .vix-msg{background:var(--green-bg);color:var(--green)}
+  .vo .vix-val{color:var(--amber)} .vo .vix-fill{background:var(--amber);width:58%} .vo .vix-msg{background:var(--amber-bg);color:var(--amber)}
+  .vr .vix-val{color:var(--red)}   .vr .vix-fill{background:var(--red);width:90%}   .vr .vix-msg{background:var(--red-bg);color:var(--red)}
+
+  /* CORRELATION — plus lisible */
+  .matrix { padding:8px 10px 4px; display:grid; grid-template-columns:repeat(2,1fr); gap:5px; flex-shrink:0; }
+  .mc { border-radius:6px; display:flex; align-items:center; justify-content:space-between; padding:5px 8px; }
+  .mc-s { font-family:var(--font-mono); font-size:10px; font-weight:600; line-height:1; }
+  .mc-v { font-family:var(--font-mono); font-size:10px; font-weight:500; line-height:1; }
+  .csu{background:rgba(63,185,80,0.2)}  .csu .mc-s,.csu .mc-v{color:var(--green)}
+  .cu {background:rgba(63,185,80,0.1)}  .cu  .mc-s,.cu  .mc-v{color:#56d364}
+  .cn {background:rgba(139,148,158,0.08)}.cn  .mc-s,.cn  .mc-v{color:var(--text-2)}
+  .cd {background:rgba(248,81,73,0.1)}  .cd  .mc-s,.cd  .mc-v{color:#ff7b72}
+  .csd{background:rgba(248,81,73,0.2)}  .csd .mc-s,.csd .mc-v{color:var(--red)}
+  .mleg { padding:4px 10px 8px; display:flex; gap:10px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .ml { display:flex; align-items:center; gap:3px; font-size:9px; color:var(--text-3); }
+  .mld { width:6px; height:6px; border-radius:50%; }
+
+  /* EVENTS MACRO */
+  .events-wrap { padding:6px 10px 8px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .ev-item { display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.03); }
+  .ev-item:last-child { border-bottom:none; }
+  .ev-time { font-family:var(--font-mono); font-size:9px; color:var(--text-3); width:36px; flex-shrink:0; }
+  .ev-imp  { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .ev-imp-h { background:var(--red); box-shadow:0 0 4px var(--red); }
+  .ev-imp-m { background:var(--amber); }
+  .ev-imp-l { background:var(--text-3); }
+  .ev-name { font-size:10px; color:var(--text-1); flex:1; line-height:1.3; }
+  .ev-curr { font-family:var(--font-mono); font-size:9px; color:var(--text-3); }
+
+  /* ALERT MODULE */
+  .alert-wrap { padding:6px 10px 8px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .alert-row  { display:flex; gap:4px; margin-bottom:4px; }
+  .alert-input { flex:1; background:var(--bg-2); border:1px solid var(--border); border-radius:4px; padding:4px 7px; font-family:var(--font-mono); font-size:10px; color:var(--text-1); outline:none; }
+  .alert-input:focus { border-color:var(--accent); }
+  .alert-add { font-family:var(--font-mono); font-size:9px; padding:4px 8px; border-radius:4px; border:1px solid var(--accent); background:var(--accent-glow); color:#58a6ff; cursor:pointer; white-space:nowrap; }
+  .alert-add:hover { background:rgba(31,111,235,0.25); }
+  .alert-list { display:flex; flex-direction:column; gap:2px; max-height:60px; overflow-y:auto; }
+  .alert-item { display:flex; align-items:center; justify-content:space-between; padding:2px 6px; background:var(--bg-2); border-radius:3px; font-family:var(--font-mono); font-size:9px; }
+  .alert-item-sym { color:var(--accent); }
+  .alert-item-price { color:var(--text-1); }
+  .alert-del { color:var(--text-3); cursor:pointer; padding:0 2px; }
+  .alert-del:hover { color:var(--red); }
+
+  /* ALERT FLASH */
+  @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .alert-flash { animation:flash 0.4s ease 3; }
+  #alert-banner { display:none; position:fixed; top:50px; left:50%; transform:translateX(-50%); background:var(--red); color:#fff; font-family:var(--font-mono); font-size:12px; font-weight:600; padding:8px 20px; border-radius:6px; z-index:999; }
+
+  /* CENTER */
+  #center { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+  .chart-hdr { padding:6px 14px; background:var(--bg-1); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .csym  { font-family:var(--font-mono); font-size:14px; font-weight:600; }
+  .tf-btn { font-family:var(--font-mono); font-size:10px; padding:2px 7px; border-radius:4px; border:1px solid var(--border); background:transparent; color:var(--text-2); cursor:pointer; transition:all 0.12s; }
+  .tf-btn:hover  { background:var(--bg-3); color:var(--text-1); }
+  .tf-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tf-grp { display:flex; gap:3px; margin-left:auto; }
+  #chart-wrap { flex:1; position:relative; min-height:0; overflow:hidden; }
+  #chart-wrap .tradingview-widget-container { position:absolute; inset:0; width:100% !important; height:100% !important; }
+  #chart-wrap .tradingview-widget-container__widget { width:100% !important; height:100% !important; }
+
+  /* RIGHT */
+  #right { width:295px; flex-shrink:0; background:var(--bg-1); border-left:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+  .pm-grid { padding:4px 12px 6px; display:flex; flex-direction:column; gap:3px; }
+  .pm-item { display:flex; align-items:center; gap:7px; padding:3px 7px; border-radius:4px; background:var(--bg-2); border:1px solid var(--border); }
+  .pm-tick { font-family:var(--font-mono); font-size:10px; font-weight:600; color:var(--text-1); width:34px; }
+  .pm-name { font-size:10px; color:var(--text-3); flex:1; }
+  .pm-chg  { font-family:var(--font-mono); font-size:10px; font-weight:600; }
+  .up{color:var(--green)} .down{color:var(--red)} .flat{color:var(--amber)}
+
+  .fj-row { padding:5px 12px; border-bottom:1px solid var(--border); }
+  .fj-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:6px; padding:6px 0; border-radius:5px; border:1px solid rgba(31,111,235,0.4); background:var(--accent-glow); color:#58a6ff; font-family:var(--font-mono); font-size:10px; font-weight:600; cursor:pointer; text-decoration:none; transition:all 0.15s; }
+  .fj-btn:hover { background:rgba(31,111,235,0.25); border-color:var(--accent); }
+  .fj-dot { width:6px; height:6px; border-radius:50%; background:var(--green); box-shadow:0 0 5px var(--green); }
+
+  .tabs { flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+  .tab-bar { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .tab-btn { flex:1; padding:6px 0; font-size:10px; font-family:var(--font-mono); color:var(--text-3); cursor:pointer; text-align:center; border:none; background:transparent; border-bottom:2px solid transparent; transition:all 0.12s; }
+  .tab-btn:hover  { color:var(--text-2); background:var(--bg-2); }
+  .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .tab-pane { flex:1; overflow:hidden; display:none; flex-direction:column; min-height:0; }
+  .tab-pane.active { display:flex; }
+  .tab-pane iframe { width:100%; flex:1; border:none; min-height:0; }
+
+  .rss-hdr { padding:4px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .rss-lbl { font-size:9px; font-family:var(--font-mono); color:var(--text-3); }
+  .rss-rbtn { font-size:9px; font-family:var(--font-mono); color:var(--text-3); background:transparent; border:none; cursor:pointer; padding:2px 6px; border-radius:3px; }
+  .rss-rbtn:hover { background:var(--bg-3); color:var(--text-2); }
+  #rss-feed { flex:1; overflow-y:auto; }
+  .ri { padding:7px 12px; border-bottom:1px solid var(--border); text-decoration:none; display:block; transition:background 0.12s; }
+  .ri:hover { background:var(--bg-2); }
+  .ri-meta { font-family:var(--font-mono); font-size:9px; color:var(--text-3); margin-bottom:3px; display:flex; align-items:center; gap:5px; }
+  .ri-src { font-size:9px; padding:1px 5px; border-radius:3px; background:var(--accent-glow); color:#58a6ff; font-family:var(--font-mono); }
+  .ri-title { font-size:11px; color:var(--text-1); line-height:1.4; }
+  .rss-spin { padding:16px 12px; font-size:11px; color:var(--text-3); font-family:var(--font-mono); display:flex; align-items:center; gap:8px; }
+  .spin { width:10px; height:10px; border:2px solid var(--bg-4); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  #ticker { height:26px; background:var(--bg-1); border-top:1px solid var(--border); display:flex; align-items:center; overflow:hidden; flex-shrink:0; }
+  ::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--bg-4);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- ALERT BANNER -->
+<div id="alert-banner"></div>
+
+<!-- TOPBAR simplifié -->
+<div id="topbar">
+  <div class="logo">⬡ TRADE·DESK</div>
+  <div class="sep"></div>
+  <div class="dot" title="TradingView connecté"></div>
+  <div class="dot" title="Finnhub connecté"></div>
+  <div class="sep"></div>
+  <div class="badge badge-open" id="session">—</div>
+  <div id="clock">—</div>
+</div>
+
+<div id="main">
+
+  <!-- LEFT -->
+  <div id="left">
+
+    <div class="ph">Watchlist · Live</div>
+    <div id="wl-widget">
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
+        {"colorTheme":"dark","dateRange":"1D","showChart":false,"locale":"fr","isTransparent":true,"showSymbolLogo":false,"showFloatingTooltip":false,"width":"100%","height":"270","tabs":[{"title":"Marchés","symbols":[{"s":"CAPITALCOM:US100","d":"NQ"},{"s":"CAPITALCOM:US500","d":"SP500"},{"s":"CAPITALCOM:US30","d":"DJ"},{"s":"OANDA:XAUUSD","d":"GOLD"},{"s":"OANDA:EURUSD","d":"EURUSD"},{"s":"OANDA:GBPUSD","d":"GBPUSD"},{"s":"OANDA:WTICOUSD","d":"WTI"},{"s":"TVC:DXY","d":"DXY"}],"originalTitle":"Indices"}]}
+        </script>
+      </div>
+    </div>
+
+    <div id="asset-btns"></div>
+
+    <div class="ph">Volatilité · VIX</div>
+    <div class="vix-wrap vo" id="vix-wrap">
+      <div class="vix-val" id="vix-val">—</div>
+      <div class="vix-lbl">Indice VIX · S&P 500</div>
+      <div class="vix-bar"><div class="vix-fill" id="vix-fill"></div></div>
+      <div class="vix-msg" id="vix-msg">Chargement...</div>
+    </div>
+
+    <div class="ph">Corrélations</div>
+    <div class="matrix" id="matrix"></div>
+    <div class="mleg">
+      <div class="ml"><div class="mld" style="background:var(--green)"></div>Haussier</div>
+      <div class="ml"><div class="mld" style="background:var(--text-3)"></div>Neutre</div>
+      <div class="ml"><div class="mld" style="background:var(--red)"></div>Baissier</div>
+    </div>
+
+    <!-- 3 PROCHAINS ÉVÉNEMENTS MACRO -->
+    <div class="ph">Macro · Prochains</div>
+    <div class="events-wrap" id="events-wrap">
+      <div class="rss-spin"><div class="spin"></div>Chargement...</div>
+    </div>
+
+    <!-- ALERTES DE PRIX -->
+    <div class="ph">Alertes de prix</div>
+    <div class="alert-wrap">
+      <div class="alert-row">
+        <select id="alert-sym" class="alert-input" style="width:70px;flex:none">
+          <option>NQ</option><option>SP500</option><option>DJ</option>
+          <option>GOLD</option><option>EURUSD</option><option>GBPUSD</option>
+          <option>WTI</option><option>DXY</option>
+        </select>
+        <input id="alert-price" class="alert-input" type="number" placeholder="Prix..." step="0.01">
+        <button class="alert-add" onclick="addAlert()">+ Alerte</button>
+      </div>
+      <div class="alert-list" id="alert-list"></div>
+    </div>
+
+  </div>
+
+  <!-- CENTER -->
+  <div id="center">
+    <div class="chart-hdr">
+      <div class="csym" id="csym">NQ — Nasdaq 100</div>
+      <div class="tf-grp">
+        <button class="tf-btn active" onclick="setTF('1',this)">1m</button>
+        <button class="tf-btn" onclick="setTF('5',this)">5m</button>
+        <button class="tf-btn" onclick="setTF('15',this)">15m</button>
+        <button class="tf-btn" onclick="setTF('60',this)">1h</button>
+        <button class="tf-btn" onclick="setTF('D',this)">1j</button>
+      </div>
+    </div>
+    <div id="chart-wrap">
+      <div class="tradingview-widget-container" id="chart-container" style="width:100%;height:100%">
+        <div class="tradingview-widget-container__widget" style="width:100%;height:100%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div id="right">
+
+    <div class="ph">Pré-market · Mag 7</div>
+    <div class="pm-grid" id="pm"></div>
+
+    <div class="fj-row">
+      <a class="fj-btn" href="https://www.financialjuice.com" target="_blank">
+        <div class="fj-dot"></div>FINANCIAL JUICE — LIVE
+      </a>
+    </div>
+
+    <div class="tabs">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('news',this)">📰 News</button>
+        <button class="tab-btn" onclick="switchTab('cal',this)">🗓 Calendrier</button>
+      </div>
+      <div class="tab-pane active" id="tab-news">
+        <div class="rss-hdr">
+          <span class="rss-lbl" id="rss-lbl">Chargement...</span>
+          <button class="rss-rbtn" onclick="fetchNews()">↻</button>
+        </div>
+        <div id="rss-feed"><div class="rss-spin"><div class="spin"></div>Récupération...</div></div>
+      </div>
+      <div class="tab-pane" id="tab-cal">
+        <div class="tradingview-widget-container" style="width:100%;height:100%">
+          <div class="tradingview-widget-container__widget" style="width:100%;height:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+          {"colorTheme":"dark","isTransparent":true,"width":"100%","height":"100%","locale":"fr","importanceFilter":"0,1","currencyFilter":"USD,EUR,GBP,JPY"}
+          </script>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="ticker"></div>
+
+<script>
+const FINNHUB_KEY = 'd8anif9r01qpujl2q2rgd8anif9r01qpujl2q2s0';
+
+const ASSETS = [
+  {sym:'NQ',    name:'Nasdaq 100',  tv:'CAPITALCOM:US100', fh:'NDX'},
+  {sym:'SP500', name:'S&P 500',     tv:'CAPITALCOM:US500', fh:'SPY'},
+  {sym:'DJ',    name:'Dow Jones',   tv:'CAPITALCOM:US30',  fh:'DIA'},
+  {sym:'GOLD',  name:'Or',          tv:'OANDA:XAUUSD',     fh:'GC=F'},
+  {sym:'EURUSD',name:'EUR/USD',     tv:'OANDA:EURUSD',     fh:'EURUSD'},
+  {sym:'GBPUSD',name:'GBP/USD',     tv:'OANDA:GBPUSD',     fh:'GBPUSD'},
+  {sym:'WTI',   name:'Pétrole WTI', tv:'OANDA:WTICOUSD',   fh:'CL=F'},
+  {sym:'DXY',   name:'Dollar Index',tv:'TVC:DXY',          fh:'DX-Y.NYB'},
+];
+
+const MAG7 = [
+  {t:'NVDA',n:'Nvidia',c:+2.4},{t:'AAPL',n:'Apple',c:-0.3},
+  {t:'MSFT',n:'Microsoft',c:+0.8},{t:'GOOGL',n:'Alphabet',c:+0.5},
+  {t:'AMZN',n:'Amazon',c:+1.1},{t:'META',n:'Meta',c:-0.6},{t:'TSLA',n:'Tesla',c:+3.2},
+];
+
+const CORR = [
+  {s:'NQ',    v:+0.42,c:'csu'},{s:'SP500', v:+0.18,c:'cu'},
+  {s:'DJ',    v:-0.07,c:'cn'}, {s:'GOLD',  v:+0.31,c:'cu'},
+  {s:'DXY',   v:-0.54,c:'cd'}, {s:'US10Y', v:-0.21,c:'cd'},
+  {s:'WTI',   v:+0.14,c:'cu'}, {s:'GBP/USD',v:-0.09,c:'cn'},
+];
+
+let activeIdx = 0;
+let currentTF = '1';
+let alerts    = [];
+let livePrices = {};
+
+// ─── CLOCK ────────────────────────────────────────────────
+function updateClock() {
+  const now=new Date(), p=n=>String(n).padStart(2,'0');
+  document.getElementById('clock').textContent =
+    `${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}  ·  ${now.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}`;
+  const h=now.getUTCHours(), el=document.getElementById('session');
+  if      (h>=13&&h<16) { el.className='badge badge-pre';    el.textContent='PRÉ-MARCHÉ US'; }
+  else if (h>=16&&h<22) { el.className='badge badge-open';   el.textContent='● US OUVERTE'; }
+  else if (h>=7 &&h<16) { el.className='badge badge-open';   el.textContent='● EU OUVERTE'; }
+  else                  { el.className='badge badge-closed'; el.textContent='MARCHÉS FERMÉS'; }
+}
+setInterval(updateClock,1000); updateClock();
+
+// ─── ASSET BUTTONS ────────────────────────────────────────
+function renderAssetBtns() {
+  document.getElementById('asset-btns').innerHTML = ASSETS.map((a,i)=>
+    `<button class="abtn${i===0?' active':''}" onclick="selectAsset(${i})">${a.sym}</button>`
+  ).join('');
+}
+
+function selectAsset(idx) {
+  activeIdx=idx;
+  document.querySelectorAll('.abtn').forEach((b,i)=>b.className=`abtn${i===idx?' active':''}`);
+  document.getElementById('csym').textContent=`${ASSETS[idx].sym} — ${ASSETS[idx].name}`;
+  loadChart();
+}
+
+// ─── CHART ────────────────────────────────────────────────
+function loadChart() {
+  const a=ASSETS[activeIdx];
+  const c=document.getElementById('chart-container');
+  c.innerHTML=`<div class="tradingview-widget-container__widget" style="width:100%;height:100%"></div>`;
+  const s=document.createElement('script');
+  s.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  s.async=true;
+  s.innerHTML=JSON.stringify({
+    autosize:true, symbol:a.tv, interval:currentTF,
+    timezone:'Europe/Paris', theme:'dark', style:'1', locale:'fr',
+    backgroundColor:'rgba(8,11,15,1)', gridColor:'rgba(255,255,255,0.04)',
+    hide_top_toolbar:false, hide_legend:false, save_image:false,
+    studies:['RSI@tv-basicstudies','MACD@tv-basicstudies'],
+    support_host:'https://www.tradingview.com'
+  });
+  c.appendChild(s);
+}
+
+function setTF(tf,btn) {
+  document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); currentTF=tf; loadChart();
+}
+
+// ─── VIX LIVE via Finnhub ────────────────────────────────
+async function fetchVIX() {
+  try {
+    const res  = await fetch(`https://finnhub.io/api/v1/quote?symbol=VIX&token=${FINNHUB_KEY}`);
+    const data = await res.json();
+    const v    = data.c || 16.8;
+    document.getElementById('vix-val').textContent = v.toFixed(1);
+    let cls, msg;
+    if      (v<15) { cls='vg'; msg='✓ Marché calme. Trading normal.'; }
+    else if (v<25) { cls='vo'; msg='⚠ Volatilité modérée. Surveille tes stops.'; }
+    else           { cls='vr'; msg='✕ Tempête. Réduis les positions de 50%.'; }
+    document.getElementById('vix-wrap').className=`vix-wrap ${cls}`;
+    document.getElementById('vix-msg').textContent=msg;
+    document.getElementById('vix-fill').style.width=Math.min((v/40)*100,100)+'%';
+  } catch(e) {}
+}
+
+// ─── CORRELATION ──────────────────────────────────────────
+function renderMatrix() {
+  document.getElementById('matrix').innerHTML = CORR.map(c=>
+    `<div class="mc ${c.c}">
+      <span class="mc-s">${c.s}</span>
+      <span class="mc-v">${c.v>0?'+':''}${c.v}%</span>
+    </div>`
+  ).join('');
+}
+
+// ─── 3 PROCHAINS ÉVÉNEMENTS MACRO ────────────────────────
+async function fetchEvents() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const res   = await fetch(`https://finnhub.io/api/v1/calendar/economic?from=${today}&to=${today}&token=${FINNHUB_KEY}`);
+    const data  = await res.json();
+    const events= (data.economicCalendar || [])
+      .filter(e => e.impact === 'high' || e.impact === 'medium')
+      .slice(0, 3);
+
+    if (!events.length) {
+      document.getElementById('events-wrap').innerHTML = `<div style="font-size:10px;color:var(--text-3);font-family:var(--font-mono);padding:4px 0">Aucun événement majeur</div>`;
+      return;
+    }
+
+    document.getElementById('events-wrap').innerHTML = events.map(e => {
+      const time = e.time ? e.time.slice(0,5) : '—';
+      const impCls = e.impact==='high' ? 'ev-imp-h' : e.impact==='medium' ? 'ev-imp-m' : 'ev-imp-l';
+      return `<div class="ev-item">
+        <span class="ev-time">${time}</span>
+        <span class="ev-imp ${impCls}"></span>
+        <span class="ev-name">${e.event}</span>
+        <span class="ev-curr">${e.country||''}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('events-wrap').innerHTML = `<div style="font-size:10px;color:var(--text-3);font-family:var(--font-mono)">—</div>`;
+  }
+}
+
+// ─── ALERTES DE PRIX ──────────────────────────────────────
+function addAlert() {
+  const sym   = document.getElementById('alert-sym').value;
+  const price = parseFloat(document.getElementById('alert-price').value);
+  if (!price) return;
+  alerts.push({ sym, price, id: Date.now() });
+  document.getElementById('alert-price').value = '';
+  renderAlerts();
+}
+
+function removeAlert(id) {
+  alerts = alerts.filter(a=>a.id!==id);
+  renderAlerts();
+}
+
+function renderAlerts() {
+  document.getElementById('alert-list').innerHTML = alerts.length
+    ? alerts.map(a=>`
+        <div class="alert-item">
+          <span class="alert-item-sym">${a.sym}</span>
+          <span class="alert-item-price">${a.price}</span>
+          <span class="alert-del" onclick="removeAlert(${a.id})">✕</span>
+        </div>`).join('')
+    : `<div style="font-size:9px;color:var(--text-3);font-family:var(--font-mono);padding:2px 4px">Aucune alerte</div>`;
+}
+
+function checkAlerts(sym, price) {
+  alerts.forEach(a => {
+    if (a.sym !== sym) return;
+    const diff = Math.abs(price - a.price) / a.price;
+    if (diff < 0.001) {
+      triggerAlert(sym, a.price);
+    }
+  });
+}
+
+function triggerAlert(sym, price) {
+  // Flash visuel
+  const banner = document.getElementById('alert-banner');
+  banner.textContent = `🔔 ALERTE — ${sym} @ ${price}`;
+  banner.style.display = 'block';
+  setTimeout(()=>banner.style.display='none', 4000);
+  // Son
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain= ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.5);
+    osc.start(); osc.stop(ctx.currentTime+0.5);
+  } catch(e){}
+}
+
+// ─── NEWS FINNHUB ─────────────────────────────────────────
+async function fetchNews() {
+  document.getElementById('rss-lbl').textContent='Mise à jour...';
+  try {
+    const res  = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_KEY}`);
+    const data = await res.json();
+    document.getElementById('rss-feed').innerHTML = data.slice(0,25).map(item=>{
+      const ago=timeAgo(new Date(item.datetime*1000));
+      return `<a class="ri" href="${item.url}" target="_blank">
+        <div class="ri-meta"><span class="ri-src">${item.source||'News'}</span>${ago}</div>
+        <div class="ri-title">${item.headline}</div>
+      </a>`;
+    }).join('');
+    const now=new Date();
+    document.getElementById('rss-lbl').textContent=`Mis à jour ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+  } catch(e) {
+    document.getElementById('rss-lbl').textContent='Erreur réseau';
+  }
+}
+
+function timeAgo(date) {
+  const d=Math.floor((Date.now()-date)/60000);
+  return d<1?"à l'instant":d<60?`${d}m`:`${Math.floor(d/60)}h`;
+}
+
+// ─── PREMARKET ────────────────────────────────────────────
+function renderPM() {
+  document.getElementById('pm').innerHTML = MAG7.map(s=>{
+    const cls=s.c>0?'up':'down', sign=s.c>0?'+':'';
+    return `<div class="pm-item"><span class="pm-tick">${s.t}</span><span class="pm-name">${s.n}</span><span class="pm-chg ${cls}">${sign}${s.c}%</span></div>`;
+  }).join('');
+}
+
+// ─── TABS ─────────────────────────────────────────────────
+function switchTab(id,btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ─── TICKER TAPE ──────────────────────────────────────────
+function renderTicker() {
+  const tickers=['CAPITALCOM:US100','CAPITALCOM:US500','CAPITALCOM:US30','OANDA:XAUUSD','OANDA:EURUSD','OANDA:GBPUSD','OANDA:WTICOUSD','TVC:DXY'];
+  const names=['NQ','SP500','DJ','GOLD','EUR/USD','GBP/USD','WTI','DXY'];
+  const wrap=document.getElementById('ticker');
+  wrap.innerHTML='';
+  const c=document.createElement('div');
+  c.className='tradingview-widget-container';
+  c.style.cssText='width:100%;height:26px;';
+  const i=document.createElement('div');
+  i.className='tradingview-widget-container__widget';
+  c.appendChild(i);
+  const s=document.createElement('script');
+  s.src='https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+  s.async=true;
+  s.innerHTML=JSON.stringify({
+    symbols:tickers.map((t,i)=>({proName:t,title:names[i]})),
+    showSymbolLogo:false, isTransparent:true,
+    displayMode:'compact', colorTheme:'dark', locale:'fr'
+  });
+  c.appendChild(s);
+  wrap.appendChild(c);
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+renderAssetBtns();
+renderMatrix();
+renderPM();
+renderAlerts();
+loadChart();
+fetchNews();
+fetchVIX();
+fetchEvents();
+renderTicker();
+
+setInterval(fetchNews,  60000);
+setInterval(fetchVIX,   30000);
+setInterval(fetchEvents,300000);
+</script>
+</body>
+</html>
